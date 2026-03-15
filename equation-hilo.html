@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equation Hi-Lo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Rajdhani:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #0d3b1e;
+    --felt-light: #145228;
+    --felt-dark: #081f10;
+    --gold: #c9a84c;
+    --gold-bright: #f0c040;
+    --neon-hi: #ff4d6d;
+    --neon-lo: #00d4ff;
+    --neon-green: #39ff14;
+    --card-bg: #fef9ef;
+    --card-border: #d4a04a;
+    --chip-red: #e63946;
+    --chip-blue: #457b9d;
+    --chip-black: #1d1d1d;
+    --text-light: #f0e6c8;
+    --text-muted: #8a9e7a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--felt-dark);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text-light);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,82,40,0.6) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 40px);
+  }
+
+  /* ── HEADER ── */
+  #header {
+    text-align: center;
+    padding: 22px 20px 10px;
+    position: relative;
+  }
+  #header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.6rem);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, var(--neon-hi) 0%, var(--gold-bright) 50%, var(--neon-lo) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 18px rgba(201,168,76,0.5));
+  }
+  #header .subtitle {
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+  .targets-banner {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 12px;
+  }
+  .target-badge {
+    padding: 5px 22px;
+    border-radius: 30px;
+    font-family: 'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+  }
+  .target-badge.hi {
+    background: rgba(255,77,109,0.15);
+    border: 1.5px solid var(--neon-hi);
+    color: var(--neon-hi);
+    box-shadow: 0 0 14px rgba(255,77,109,0.3), inset 0 0 10px rgba(255,77,109,0.1);
+  }
+  .target-badge.lo {
+    background: rgba(0,212,255,0.1);
+    border: 1.5px solid var(--neon-lo);
+    color: var(--neon-lo);
+    box-shadow: 0 0 14px rgba(0,212,255,0.3), inset 0 0 10px rgba(0,212,255,0.1);
+  }
+
+  /* ── LAYOUT ── */
+  #game-area {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 10px 16px 40px;
+  }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+
+  /* ── POT / CHIPS INFO ── */
+  #info-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px;
+    padding: 10px 20px;
+    margin-bottom: 18px;
+  }
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .info-item .val {
+    font-family: 'Courier Prime', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+  }
+  .info-item .lbl {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .chip-icon { font-size: 1.2rem; }
+  #phase-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--gold);
+    text-align: center;
+    flex: 1;
+  }
+
+  /* ── AI PLAYERS ── */
+  #opponents-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .opponent-card {
+    flex: 1;
+    min-width: 160px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 10px;
+    padding: 10px 14px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .opponent-card.active { border-color: var(--gold); }
+  .opponent-card.folded { opacity: 0.4; }
+  .opp-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .opp-chips {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .opp-cards {
+    display: flex;
+    gap: 4px;
+    margin-top: 7px;
+    flex-wrap: wrap;
+  }
+  .opp-card-back {
+    width: 28px;
+    height: 38px;
+    background: linear-gradient(135deg, #1a4a6e 0%, #0d2d45 100%);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.3);
+  }
+  .opp-status {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .opp-status.fold { background: rgba(255,100,100,0.2); color: #ff8080; }
+  .opp-status.bet  { background: rgba(57,255,20,0.15); color: var(--neon-green); }
+  .opp-status.check{ background: rgba(255,255,255,0.1); color: #aaa; }
+  .opp-revealed { display: none; }
+  .opp-revealed.show { display: block; }
+
+  /* ── PLAYER HAND ── */
+  #player-section {
+    margin-bottom: 16px;
+  }
+  #hand-area {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    min-height: 100px;
+    align-items: flex-end;
+  }
+
+  /* Playing card */
+  .card {
+    width: 64px;
+    height: 88px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #1a1a1a;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+    box-shadow: 2px 3px 10px rgba(0,0,0,0.5);
+    animation: dealIn 0.35s ease-out;
+    flex-shrink: 0;
+  }
+  @keyframes dealIn {
+    from { transform: translateY(-40px) rotate(-8deg); opacity: 0; }
+    to   { transform: translateY(0) rotate(0); opacity: 1; }
+  }
+  .card:hover:not(.in-equation):not(.discarded) {
+    transform: translateY(-8px);
+    box-shadow: 2px 12px 20px rgba(0,0,0,0.6);
+  }
+  .card.selected {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 18px rgba(240,192,64,0.7);
+    transform: translateY(-12px);
+  }
+  .card.in-equation {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 14px rgba(57,255,20,0.5);
+    transform: translateY(-4px);
+    opacity: 0.7;
+  }
+  .card.discarded {
+    opacity: 0.25;
+    transform: rotate(15deg) translateY(10px);
+    cursor: default;
+  }
+  .card .corner {
+    position: absolute;
+    top: 4px; left: 6px;
+    font-size: 0.65rem;
+    font-family: 'Courier Prime', monospace;
+    line-height: 1;
+    color: #555;
+  }
+
+  /* ── EQUATION BUILDER ── */
+  #equation-section {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  #equation-display {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 64px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 1.5rem;
+  }
+  .eq-token {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    animation: popIn 0.2s ease-out;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .eq-token:hover { opacity: 0.7; }
+  .eq-token.num {
+    background: rgba(201,168,76,0.2);
+    border: 1px solid var(--gold);
+    color: var(--gold-bright);
+    min-width: 38px;
+  }
+  .eq-token.op {
+    background: rgba(57,255,20,0.12);
+    border: 1px solid rgba(57,255,20,0.5);
+    color: var(--neon-green);
+    min-width: 32px;
+  }
+  .eq-token.paren {
+    background: rgba(255,200,0,0.1);
+    border: 1px solid rgba(255,200,0,0.4);
+    color: #ffd060;
+  }
+  .eq-placeholder {
+    color: rgba(255,255,255,0.2);
+    font-style: italic;
+    font-size: 1rem;
+  }
+  #result-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  #result-val {
+    font-family: 'Courier Prime', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    min-width: 80px;
+    padding: 6px 16px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    text-align: center;
+    transition: color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  #result-val.exact-hi { color: var(--neon-hi); border-color: var(--neon-hi); box-shadow: 0 0 20px rgba(255,77,109,0.5); }
+  #result-val.exact-lo { color: var(--neon-lo); border-color: var(--neon-lo); box-shadow: 0 0 20px rgba(0,212,255,0.5); }
+  #result-val.close    { color: var(--gold-bright); border-color: var(--gold); }
+  .result-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .result-meta span { color: var(--text-light); }
+
+  /* ── OPERATOR / PAREN BUTTONS ── */
+  #operator-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .op-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(57,255,20,0.5);
+    background: rgba(57,255,20,0.08);
+    color: var(--neon-green);
+    font-size: 1.4rem;
+    font-family: 'Courier Prime', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .op-btn:hover { background: rgba(57,255,20,0.2); box-shadow: 0 0 12px rgba(57,255,20,0.3); transform: scale(1.05); }
+  .op-btn.paren-btn {
+    border-color: rgba(255,200,0,0.4);
+    background: rgba(255,200,0,0.06);
+    color: #ffd060;
+  }
+  .op-btn.paren-btn:hover { background: rgba(255,200,0,0.18); box-shadow: 0 0 12px rgba(255,200,0,0.3); }
+  .op-btn.clear-btn {
+    border-color: rgba(255,77,109,0.4);
+    background: rgba(255,77,109,0.06);
+    color: var(--neon-hi);
+    width: auto;
+    padding: 0 14px;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+  }
+  .op-btn.clear-btn:hover { background: rgba(255,77,109,0.2); }
+
+  /* ── BETTING CONTROLS ── */
+  #betting-section {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  #bet-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .bet-btn {
+    padding: 9px 22px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bet-btn:disabled { opacity: 0.3; cursor: default; }
+  .btn-check  { background: rgba(255,255,255,0.12); color: #fff; }
+  .btn-bet    { background: linear-gradient(135deg, #c9a84c, #f0c040); color: #1a1a1a; }
+  .btn-fold   { background: rgba(255,77,109,0.2); color: var(--neon-hi); border: 1px solid rgba(255,77,109,0.4); }
+  .btn-raise  { background: rgba(57,255,20,0.15); color: var(--neon-green); border: 1px solid rgba(57,255,20,0.4); }
+  .btn-draw   { background: rgba(0,212,255,0.12); color: var(--neon-lo); border: 1px solid rgba(0,212,255,0.35); }
+  .btn-showdown { background: linear-gradient(135deg, var(--neon-hi), var(--gold-bright)); color: #1a1a1a; font-size: 1rem; padding: 11px 30px; }
+  .bet-btn:not(:disabled):hover { filter: brightness(1.15); transform: translateY(-2px); }
+  #bet-amount-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #bet-amount-wrap label { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  #bet-amount {
+    width: 70px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 6px;
+    color: var(--gold-bright);
+    font-family: 'Courier Prime', monospace;
+    font-size: 1rem;
+    text-align: center;
+  }
+  #bet-amount:focus { outline: none; border-color: var(--gold); }
+
+  /* ── DRAW SECTION ── */
+  #draw-section { display: none; margin-bottom: 16px; }
+  #draw-section.visible { display: block; }
+  .draw-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .draw-hint span { color: var(--neon-lo); }
+
+  /* ── MESSAGE LOG ── */
+  #log {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 16px;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    margin-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201,168,76,0.3) transparent;
+  }
+  .log-line { color: var(--text-muted); }
+  .log-line.important { color: var(--text-light); }
+  .log-line.win { color: var(--neon-green); font-weight: 700; }
+  .log-line.loss { color: var(--neon-hi); }
+  .log-line.hi-label { color: var(--neon-hi); }
+  .log-line.lo-label { color: var(--neon-lo); }
+
+  /* ── RESULTS OVERLAY ── */
+  #results-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #results-overlay.show { display: flex; }
+  #results-modal {
+    background: linear-gradient(160deg, #0d3b1e 0%, #081f10 100%);
+    border: 1.5px solid var(--gold);
+    border-radius: 18px;
+    padding: 32px 36px;
+    max-width: 560px;
+    width: 92%;
+    box-shadow: 0 0 60px rgba(201,168,76,0.2), 0 0 120px rgba(0,0,0,0.8);
+    animation: modalIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.7) translateY(40px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  #results-modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .result-row .name { font-family: 'Playfair Display', serif; color: var(--gold); }
+  .result-row .eq-str { font-family: 'Courier Prime', monospace; font-size: 0.85rem; color: var(--text-muted); }
+  .result-row .score { font-family: 'Courier Prime', monospace; font-size: 1.1rem; }
+  .winner-badge {
+    background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+    color: #1a1a1a;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .winner-badge.lo { background: linear-gradient(135deg, var(--neon-lo), #60e0ff); }
+  #new-round-btn {
+    display: block;
+    width: 100%;
+    margin-top: 22px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+    color: #1a1a1a;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #new-round-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+  /* ── GAME OVER ── */
+  #gameover-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  #gameover-overlay.show { display: flex; }
+  #gameover-overlay h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    background: linear-gradient(135deg, var(--neon-hi), var(--gold-bright));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  #gameover-overlay p { color: var(--text-muted); font-size: 1.1rem; }
+  #restart-btn {
+    padding: 14px 40px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+    color: #1a1a1a;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #restart-btn:hover { filter: brightness(1.1); transform: scale(1.04); }
+
+  /* ── HELP TOOLTIP ── */
+  #help-btn {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.15);
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: all 0.2s;
+  }
+  #help-btn:hover { background: rgba(201,168,76,0.3); }
+
+  #help-panel {
+    display: none;
+    position: fixed;
+    bottom: 72px; right: 20px;
+    width: 300px;
+    background: #0d2218;
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 50;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    box-shadow: 0 0 30px rgba(0,0,0,0.7);
+  }
+  #help-panel.show { display: block; }
+  #help-panel h3 { color: var(--gold); font-family: 'Playfair Display', serif; margin-bottom: 8px; font-size: 1rem; }
+  #help-panel strong { color: var(--text-light); }
+
+  /* draw mode highlight */
+  .card.draw-select:hover:not(.discarded) {
+    border-color: var(--neon-hi) !important;
+    box-shadow: 0 0 14px rgba(255,77,109,0.5) !important;
+  }
+  .card.marked-discard {
+    border-color: var(--neon-hi) !important;
+    opacity: 0.4 !important;
+    transform: rotate(10deg) translateY(8px) !important;
+  }
+
+  @media (max-width: 600px) {
+    .card { width: 52px; height: 72px; font-size: 1.3rem; }
+    #equation-display { font-size: 1.2rem; }
+    #results-modal { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <h1>Equation Hi-Lo</h1>
+  <div class="subtitle">Mathematical Poker &nbsp;·&nbsp; Arithmetic Strategy</div>
+  <div class="targets-banner">
+    <div class="target-badge lo">LO = 1</div>
+    <div class="target-badge hi">HI = 20</div>
+  </div>
+</div>
+
+<div id="game-area">
+
+  <!-- INFO BAR -->
+  <div id="info-bar">
+    <div class="info-item">
+      <div class="val" id="player-chips">50</div>
+      <div class="lbl">Your Chips</div>
+    </div>
+    <div id="phase-label">— Ante Phase —</div>
+    <div class="info-item">
+      <div class="val" id="pot-display">0</div>
+      <div class="lbl">Pot</div>
+    </div>
+    <div class="info-item">
+      <div class="val" id="round-display">1</div>
+      <div class="lbl">Round</div>
+    </div>
+  </div>
+
+  <!-- OPPONENTS -->
+  <div class="section-label">Opponents</div>
+  <div id="opponents-row"></div>
+
+  <!-- PLAYER HAND -->
+  <div id="player-section">
+    <div class="section-label">Your Hand — <span id="hand-hint" style="color:var(--gold)">Click cards to add to equation</span></div>
+    <div id="hand-area"></div>
+  </div>
+
+  <!-- DRAW SECTION -->
+  <div id="draw-section">
+    <div class="draw-hint">Click up to <span>2 cards</span> to discard, then click <strong>Draw</strong>.</div>
+  </div>
+
+  <!-- EQUATION BUILDER -->
+  <div id="equation-section">
+    <div class="section-label">Equation Builder</div>
+    <div id="operator-row">
+      <button class="op-btn" onclick="addOp('+')">+</button>
+      <button class="op-btn" onclick="addOp('-')">−</button>
+      <button class="op-btn" onclick="addOp('*')">×</button>
+      <button class="op-btn" onclick="addOp('/')">÷</button>
+      <button class="op-btn paren-btn" onclick="addOp('(')">(</button>
+      <button class="op-btn paren-btn" onclick="addOp(')')">)</button>
+      <button class="op-btn clear-btn" onclick="clearLast()">⌫ Undo</button>
+      <button class="op-btn clear-btn" onclick="clearEq()">✕ Clear</button>
+    </div>
+    <div id="equation-display"><span class="eq-placeholder">Click cards + operators to build your equation…</span></div>
+    <div id="result-display">
+      <div id="result-val">—</div>
+      <div class="result-meta" id="result-meta"></div>
+    </div>
+  </div>
+
+  <!-- BETTING -->
+  <div id="betting-section">
+    <div class="section-label">Actions</div>
+    <div id="bet-controls">
+      <button class="bet-btn btn-check"  id="btn-check"    onclick="playerAction('check')">Check</button>
+      <button class="bet-btn btn-fold"   id="btn-fold"     onclick="playerAction('fold')">Fold</button>
+      <div id="bet-amount-wrap">
+        <label>Bet</label>
+        <input type="number" id="bet-amount" value="5" min="1" max="200">
+      </div>
+      <button class="bet-btn btn-bet"    id="btn-bet"      onclick="playerAction('bet')">Bet</button>
+      <button class="bet-btn btn-raise"  id="btn-raise"    onclick="playerAction('raise')">Raise</button>
+      <button class="bet-btn btn-draw"   id="btn-draw"     onclick="startDraw()" style="display:none">Draw Cards</button>
+      <button class="bet-btn btn-showdown" id="btn-showdown" onclick="showdown()" style="display:none">Show Hand</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section-label">Table Log</div>
+  <div id="log"></div>
+
+</div>
+
+<!-- RESULTS MODAL -->
+<div id="results-overlay">
+  <div id="results-modal">
+    <h2 id="results-title">Showdown</h2>
+    <div id="results-body"></div>
+    <button id="new-round-btn" onclick="newRound()">Next Round ▸</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover-overlay">
+  <h2 id="gameover-title">Game Over</h2>
+  <p id="gameover-msg"></p>
+  <button id="restart-btn" onclick="initGame()">Play Again</button>
+</div>
+
+<!-- HELP -->
+<button id="help-btn" onclick="toggleHelp()">?</button>
+<div id="help-panel">
+  <h3>How to Play</h3>
+  <strong>Goal:</strong> Build an equation using 3–5 of your cards targeting <strong>1 (Lo)</strong> or <strong>20 (Hi)</strong>.<br><br>
+  <strong>Build:</strong> Click a card, then an operator, then another card, etc. Use ( ) for grouping.<br><br>
+  <strong>Bet:</strong> Check (free), Bet/Raise (add chips), or Fold (give up).<br><br>
+  <strong>Draw:</strong> After betting, discard up to 2 cards for new ones.<br><br>
+  <strong>Win:</strong> Pot splits — best Hi wins half, best Lo wins half. Ties go to more cards used, then highest card.<br><br>
+  <strong>Scoop:</strong> Win both Hi and Lo with different card subsets to take the whole pot!
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════
+let state = {};
+
+const OPP_NAMES = ['Duchess', 'The Count', 'Vanderbilt'];
+
+function initGame() {
+  document.getElementById('gameover-overlay').classList.remove('show');
+  state = {
+    round: 1,
+    phase: 'ante',    // ante → bet1 → draw → bet2 → showdown
+    deck: [],
+    playerHand: [],
+    playerChips: 50,
+    pot: 0,
+    currentBet: 0,    // current bet level on table
+    playerBet: 0,     // how much player put in this round
+    equation: [],     // tokens in builder
+    usedCardIndices: new Set(),
+    markedDiscard: new Set(),
+    opponents: OPP_NAMES.map((name, i) => ({
+      name, chips: 50,
+      hand: [], folded: false,
+      status: '', bet: 0,
+      strategy: ['hi','lo','both'][i]
+    })),
+    drawMode: false,
+    playerFolded: false,
+  };
+  buildDeck();
+  startRound();
+}
+
+function buildDeck() {
+  state.deck = [];
+  // 4 copies of 0–10 (like a thick math deck)
+  for (let suit = 0; suit < 4; suit++)
+    for (let v = 0; v <= 10; v++)
+      state.deck.push(v);
+  // shuffle
+  for (let i = state.deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [state.deck[i], state.deck[j]] = [state.deck[j], state.deck[i]];
+  }
+}
+
+function dealCard() {
+  if (state.deck.length === 0) buildDeck();
+  return state.deck.pop();
+}
+
+// ═══════════════════════════════════════════════
+//  ROUND FLOW
+// ═══════════════════════════════════════════════
+function startRound() {
+  if (state.round > 1) buildDeck();
+  state.phase = 'ante';
+  state.pot = 0;
+  state.currentBet = 0;
+  state.playerBet = 0;
+  state.equation = [];
+  state.usedCardIndices = new Set();
+  state.markedDiscard = new Set();
+  state.drawMode = false;
+  state.playerFolded = false;
+
+  // Ante
+  const ante = 2;
+  state.pot += ante;
+  state.playerChips -= ante;
+  state.playerBet = ante;
+  state.opponents.forEach(o => {
+    o.folded = false; o.status = ''; o.bet = ante;
+    o.chips -= ante;
+    state.pot += ante;
+  });
+
+  // Deal hands
+  state.playerHand = [dealCard(), dealCard(), dealCard(), dealCard(), dealCard()];
+  state.opponents.forEach(o => {
+    o.hand = [dealCard(), dealCard(), dealCard(), dealCard(), dealCard()];
+  });
+
+  addLog(`--- Round ${state.round} begins. Ante: ${ante} each ---`, 'important');
+  updateUI();
+  enterBetting1();
+}
+
+function enterBetting1() {
+  state.phase = 'bet1';
+  state.currentBet = 0;
+  addLog('First betting round. Check, Bet, or Fold.', 'important');
+  updateUI();
+  oppBettingRound();
+}
+
+function oppBettingRound() {
+  // Simple AI betting logic
+  state.opponents.forEach(o => {
+    if (o.folded || o.chips <= 0) return;
+    const quality = bestEquationValue(o.hand, o.strategy);
+    const confidence = quality.distance <= 2 ? 0.8 : quality.distance <= 5 ? 0.5 : 0.25;
+    const r = Math.random();
+    if (r < 0.12) {
+      o.folded = true; o.status = 'fold';
+      addLog(`${o.name} folds.`);
+    } else if (state.currentBet === 0 && r < confidence) {
+      const betAmt = Math.min(5 + Math.floor(Math.random() * 6), o.chips);
+      o.bet += betAmt; o.chips -= betAmt; state.pot += betAmt;
+      state.currentBet = Math.max(state.currentBet, betAmt);
+      o.status = 'bet';
+      addLog(`${o.name} bets ${betAmt}.`);
+    } else if (state.currentBet > 0 && r < 0.6) {
+      const call = Math.min(state.currentBet - (o.bet - 2), o.chips);
+      if (call > 0) { o.bet += call; o.chips -= call; state.pot += call; }
+      o.status = 'bet';
+    } else {
+      o.status = 'check';
+    }
+  });
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════
+//  PLAYER ACTIONS
+// ═══════════════════════════════════════════════
+function playerAction(action) {
+  if (state.phase !== 'bet1' && state.phase !== 'bet2') return;
+  const betAmt = parseInt(document.getElementById('bet-amount').value) || 5;
+
+  if (action === 'fold') {
+    state.playerFolded = true;
+    addLog('You fold.', 'loss');
+    endRound(true);
+    return;
+  }
+  if (action === 'check') {
+    if (state.currentBet > state.playerBet) {
+      addLog('Cannot check — there is a bet to call. Use Bet to call.', 'important');
+      return;
+    }
+    addLog('You check.');
+  }
+  if (action === 'bet') {
+    const toCall = Math.max(state.currentBet, betAmt);
+    const actual = Math.min(toCall, state.playerChips);
+    state.playerChips -= actual;
+    state.playerBet += actual;
+    state.pot += actual;
+    state.currentBet = Math.max(state.currentBet, betAmt);
+    addLog(`You bet ${actual}.`);
+  }
+  if (action === 'raise') {
+    const raiseTotal = state.currentBet + betAmt;
+    const actual = Math.min(raiseTotal, state.playerChips);
+    state.playerChips -= actual;
+    state.playerBet += actual;
+    state.pot += actual;
+    state.currentBet = raiseTotal;
+    addLog(`You raise to ${raiseTotal}.`);
+  }
+
+  // After player acts → move to draw phase
+  if (state.phase === 'bet1') {
+    state.phase = 'draw';
+    addLog('Betting done. You may draw up to 2 cards.', 'important');
+    updateUI();
+    showDrawUI();
+  } else if (state.phase === 'bet2') {
+    state.phase = 'showdown-ready';
+    addLog('Final bets in. Build your equation and click Show Hand!', 'important');
+    updateUI();
+  }
+}
+
+function showDrawUI() {
+  const drawSec = document.getElementById('draw-section');
+  drawSec.classList.add('visible');
+  state.drawMode = true;
+  document.getElementById('btn-draw').style.display = 'inline-flex';
+  document.getElementById('btn-check').style.display = 'none';
+  document.getElementById('btn-bet').style.display = 'none';
+  document.getElementById('btn-raise').style.display = 'none';
+  document.getElementById('btn-fold').style.display = 'none';
+  document.getElementById('bet-amount-wrap').style.display = 'none';
+  document.getElementById('hand-hint').textContent = 'Click up to 2 cards to discard';
+  renderHand();
+}
+
+function startDraw() {
+  // Discard marked cards, draw replacements
+  const toDiscard = [...state.markedDiscard];
+  if (toDiscard.length > 2) { addLog('Can only discard up to 2!'); return; }
+
+  toDiscard.forEach(idx => {
+    state.playerHand[idx] = dealCard();
+  });
+  state.markedDiscard = new Set();
+  state.drawMode = false;
+
+  // Opp draw
+  state.opponents.forEach(o => {
+    if (o.folded) return;
+    const n = Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) {
+      const idx = Math.floor(Math.random() * 5);
+      o.hand[idx] = dealCard();
+    }
+  });
+
+  addLog(`You drew ${toDiscard.length} card(s).`, 'important');
+  clearEq();
+  document.getElementById('draw-section').classList.remove('visible');
+  document.getElementById('btn-draw').style.display = 'none';
+  document.getElementById('hand-hint').textContent = 'Click cards to add to equation';
+
+  // Second betting round
+  state.phase = 'bet2';
+  state.currentBet = 0;
+  addLog('Final betting round.', 'important');
+  oppBettingRound();
+
+  // Show betting buttons + showdown
+  document.getElementById('btn-check').style.display = 'inline-flex';
+  document.getElementById('btn-bet').style.display = 'inline-flex';
+  document.getElementById('btn-raise').style.display = 'inline-flex';
+  document.getElementById('btn-fold').style.display = 'inline-flex';
+  document.getElementById('bet-amount-wrap').style.display = 'flex';
+  document.getElementById('btn-showdown').style.display = 'inline-flex';
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════
+//  SHOWDOWN
+// ═══════════════════════════════════════════════
+function showdown() {
+  if (state.playerFolded) return;
+  const ev = evalEquation();
+  if (ev === null) { addLog('Invalid equation — fix before showing hand.', 'important'); return; }
+
+  const cardCount = state.equation.filter(t => t.type === 'num').length;
+  if (cardCount < 3) { addLog('Use at least 3 cards in your equation.', 'important'); return; }
+
+  // Compute AI best equations
+  const results = [];
+
+  if (!state.playerFolded) {
+    const hiDist = Math.abs(ev - 20);
+    const loDist = Math.abs(ev - 1);
+    const highCard = Math.max(...state.equation.filter(t => t.type === 'num').map(t => t.val));
+    results.push({
+      name: 'You',
+      value: ev,
+      hiDist, loDist,
+      cardCount,
+      highCard,
+      eqStr: equationStr(),
+      isPlayer: true,
+    });
+  }
+
+  state.opponents.forEach(o => {
+    if (o.folded) return;
+    const best = bestEquationValue(o.hand, o.strategy);
+    results.push({
+      name: o.name,
+      value: best.value,
+      hiDist: Math.abs(best.value - 20),
+      loDist: Math.abs(best.value - 1),
+      cardCount: best.cardCount,
+      highCard: best.highCard,
+      eqStr: best.eqStr,
+    });
+  });
+
+  if (results.length === 0) {
+    addLog('Everyone folded — pot returned.', 'win');
+    state.playerChips += state.pot;
+    endRound(false);
+    return;
+  }
+
+  // Determine Hi winner
+  const hiWinner = bestHand(results, 'hi');
+  const loWinner = bestHand(results, 'lo');
+
+  let hiShare = Math.floor(state.pot / 2);
+  let loShare = state.pot - hiShare;
+
+  // Check scoop
+  const scooped = hiWinner && loWinner && hiWinner.name === loWinner.name;
+  if (scooped) { hiShare = state.pot; loShare = 0; }
+
+  if (hiWinner?.isPlayer) { state.playerChips += scooped ? state.pot : hiShare; }
+  if (!scooped && loWinner?.isPlayer) { state.playerChips += loShare; }
+  if (hiWinner && !hiWinner.isPlayer) {
+    const o = state.opponents.find(x => x.name === hiWinner.name);
+    if (o) o.chips += scooped ? state.pot : hiShare;
+  }
+  if (!scooped && loWinner && !loWinner.isPlayer) {
+    const o = state.opponents.find(x => x.name === loWinner.name);
+    if (o) o.chips += loShare;
+  }
+
+  showResults(results, hiWinner, loWinner, scooped, hiShare, loShare);
+}
+
+function bestHand(results, goal) {
+  const dist = r => goal === 'hi' ? r.hiDist : r.loDist;
+  let best = null;
+  for (const r of results) {
+    if (!best) { best = r; continue; }
+    const d1 = dist(r), d2 = dist(best);
+    if (d1 < d2) best = r;
+    else if (d1 === d2) {
+      if (r.cardCount > best.cardCount) best = r;
+      else if (r.cardCount === best.cardCount && r.highCard > best.highCard) best = r;
+    }
+  }
+  return best;
+}
+
+function showResults(results, hiWinner, loWinner, scooped, hiShare, loShare) {
+  const title = document.getElementById('results-title');
+  const body = document.getElementById('results-body');
+
+  title.textContent = scooped ? '🎰 SCOOP! 🎰' : 'Showdown';
+  title.style.color = scooped ? 'var(--gold-bright)' : '';
+
+  let html = `<div style="display:flex;gap:16px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">`;
+  html += `<div style="text-align:center"><div style="color:var(--neon-hi);font-size:0.7rem;letter-spacing:0.2em">HI WINNER</div><div style="color:var(--text-light);font-family:'Playfair Display',serif;font-size:1rem">${hiWinner?.name ?? '—'}</div><div style="color:var(--gold);font-family:'Courier Prime',monospace">+${hiShare} chips</div></div>`;
+  if (!scooped) html += `<div style="text-align:center"><div style="color:var(--neon-lo);font-size:0.7rem;letter-spacing:0.2em">LO WINNER</div><div style="color:var(--text-light);font-family:'Playfair Display',serif;font-size:1rem">${loWinner?.name ?? '—'}</div><div style="color:var(--gold);font-family:'Courier Prime',monospace">+${loShare} chips</div></div>`;
+  html += `</div>`;
+  html += `<div style="font-size:0.7rem;letter-spacing:0.2em;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">All Hands</div>`;
+
+  for (const r of results) {
+    const isHiW = hiWinner?.name === r.name;
+    const isLoW = loWinner?.name === r.name;
+    html += `<div class="result-row">
+      <div>
+        <div class="name">${r.name}</div>
+        <div class="eq-str">${r.eqStr} = ${typeof r.value === 'number' ? r.value.toFixed(3).replace(/\.?0+$/, '') : r.value}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div class="score" style="color:var(--neon-hi)">Δ${r.hiDist.toFixed(2)}</div>
+        <div class="score" style="color:var(--neon-lo)">Δ${r.loDist.toFixed(2)}</div>
+        ${isHiW ? '<span class="winner-badge">HI ★</span>' : ''}
+        ${isLoW && !scooped ? '<span class="winner-badge lo">LO ★</span>' : ''}
+        ${scooped && isHiW ? '<span class="winner-badge">SCOOP 🎰</span>' : ''}
+      </div>
+    </div>`;
+  }
+
+  body.innerHTML = html;
+  document.getElementById('results-overlay').classList.add('show');
+
+  if (hiWinner?.isPlayer || loWinner?.isPlayer) addLog(`You win ${(hiWinner?.isPlayer?hiShare:0)+(loWinner?.isPlayer&&!scooped?loShare:0)} chips!`, 'win');
+}
+
+function endRound(folded) {
+  if (folded) {
+    addLog('You folded. Opponents share the pot.');
+    state.opponents.filter(o=>!o.folded).forEach(o => {
+      o.chips += Math.floor(state.pot / state.opponents.filter(x=>!x.folded).length);
+    });
+  }
+  document.getElementById('results-overlay').classList.remove('show');
+
+  // Check game over
+  if (state.playerChips <= 0) {
+    document.getElementById('gameover-title').textContent = 'Busted!';
+    document.getElementById('gameover-msg').textContent = `You ran out of chips after ${state.round} rounds.`;
+    document.getElementById('gameover-overlay').classList.add('show');
+    return;
+  }
+  state.round++;
+  document.getElementById('round-display').textContent = state.round;
+}
+
+function newRound() {
+  document.getElementById('results-overlay').classList.remove('show');
+
+  // Remove broke opponents
+  state.opponents = state.opponents.filter(o => o.chips > 0);
+  if (state.opponents.length === 0) {
+    document.getElementById('gameover-title').textContent = 'Victory!';
+    document.getElementById('gameover-msg').textContent = `You outlasted all opponents after ${state.round} rounds!`;
+    document.getElementById('gameover-overlay').classList.add('show');
+    return;
+  }
+
+  if (state.playerChips <= 0) {
+    document.getElementById('gameover-title').textContent = 'Busted!';
+    document.getElementById('gameover-msg').textContent = `You ran out of chips after ${state.round} rounds.`;
+    document.getElementById('gameover-overlay').classList.add('show');
+    return;
+  }
+
+  state.round++;
+  document.getElementById('round-display').textContent = state.round;
+  startRound();
+}
+
+// ═══════════════════════════════════════════════
+//  EQUATION BUILDER
+// ═══════════════════════════════════════════════
+function addCardToEq(idx) {
+  if (state.phase === 'showdown-ready' || state.phase === 'bet1' || state.phase === 'bet2') {
+    if (state.drawMode) return;
+    if (state.usedCardIndices.has(idx)) {
+      // Remove from equation
+      state.equation = state.equation.filter(t => !(t.type === 'num' && t.cardIdx === idx));
+      state.usedCardIndices.delete(idx);
+    } else {
+      state.usedCardIndices.add(idx);
+      state.equation.push({ type: 'num', val: state.playerHand[idx], cardIdx: idx });
+    }
+    renderEquation();
+    renderHand();
+  }
+}
+
+function addOp(op) {
+  if (state.drawMode) return;
+  state.equation.push({ type: op === '(' || op === ')' ? 'paren' : 'op', val: op });
+  renderEquation();
+}
+
+function clearLast() {
+  const last = state.equation.pop();
+  if (last && last.type === 'num') state.usedCardIndices.delete(last.cardIdx);
+  renderEquation();
+  renderHand();
+}
+
+function clearEq() {
+  state.equation = [];
+  state.usedCardIndices = new Set();
+  renderEquation();
+  renderHand();
+}
+
+function equationStr() {
+  return state.equation.map(t => {
+    if (t.type === 'op') return t.val === '*' ? '×' : t.val === '/' ? '÷' : t.val;
+    if (t.type === 'paren') return t.val;
+    return t.val;
+  }).join(' ');
+}
+
+function evalEquation() {
+  if (state.equation.length === 0) return null;
+  const expr = state.equation.map(t => {
+    if (t.type === 'op') return t.val;
+    if (t.type === 'paren') return t.val;
+    return t.val;
+  }).join('');
+  try {
+    const result = Function('"use strict"; return (' + expr + ')')();
+    if (!isFinite(result) || isNaN(result)) return null;
+    return result;
+  } catch { return null; }
+}
+
+function renderEquation() {
+  const disp = document.getElementById('equation-display');
+  if (state.equation.length === 0) {
+    disp.innerHTML = '<span class="eq-placeholder">Click cards + operators to build your equation…</span>';
+    document.getElementById('result-val').textContent = '—';
+    document.getElementById('result-val').className = '';
+    document.getElementById('result-meta').innerHTML = '';
+    return;
+  }
+
+  disp.innerHTML = state.equation.map((t, i) => {
+    let cls = 'eq-token ' + t.type;
+    let label = t.val;
+    if (t.type === 'op') label = t.val === '*' ? '×' : t.val === '/' ? '÷' : t.val;
+    return `<span class="${cls}" onclick="removeToken(${i})" title="Click to remove">${label}</span>`;
+  }).join('');
+
+  const val = evalEquation();
+  const rv = document.getElementById('result-val');
+  const rm = document.getElementById('result-meta');
+  const cardCount = state.equation.filter(t => t.type === 'num').length;
+
+  if (val === null) {
+    rv.textContent = '?';
+    rv.className = '';
+    rm.innerHTML = '<span style="color:var(--neon-hi)">Invalid expression</span>';
+    return;
+  }
+
+  rv.textContent = +val.toFixed(4) + '';
+  const hiDist = Math.abs(val - 20);
+  const loDist = Math.abs(val - 1);
+
+  if (val === 20) { rv.className = 'exact-hi'; }
+  else if (val === 1) { rv.className = 'exact-lo'; }
+  else if (hiDist <= 3 || loDist <= 1) { rv.className = 'close'; }
+  else { rv.className = ''; }
+
+  const hiLabel = hiDist === 0 ? '<span style="color:var(--neon-hi)">EXACT HI! 🔥</span>' : `<span>Δ${hiDist.toFixed(2)} from 20</span>`;
+  const loLabel = loDist === 0 ? '<span style="color:var(--neon-lo)">EXACT LO! ❄️</span>' : `<span>Δ${loDist.toFixed(2)} from 1</span>`;
+  rm.innerHTML = `${hiLabel} &nbsp;·&nbsp; ${loLabel} &nbsp;·&nbsp; <span>${cardCount} card${cardCount!==1?'s':''}</span>`;
+}
+
+function removeToken(idx) {
+  const t = state.equation[idx];
+  if (t.type === 'num') state.usedCardIndices.delete(t.cardIdx);
+  state.equation.splice(idx, 1);
+  renderEquation();
+  renderHand();
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function renderHand() {
+  const area = document.getElementById('hand-area');
+  area.innerHTML = state.playerHand.map((v, i) => {
+    let cls = 'card';
+    if (state.drawMode) {
+      cls += state.markedDiscard.has(i) ? ' marked-discard' : ' draw-select';
+    } else {
+      if (state.usedCardIndices.has(i)) cls += ' in-equation';
+    }
+    const onclick = state.drawMode
+      ? `toggleDiscard(${i})`
+      : (state.phase === 'bet1' || state.phase === 'bet2' || state.phase === 'showdown-ready')
+        ? `addCardToEq(${i})`
+        : '';
+    return `<div class="${cls}" onclick="${onclick}"><span class="corner">${v}</span>${v}</div>`;
+  }).join('');
+}
+
+function renderOpponents() {
+  const row = document.getElementById('opponents-row');
+  row.innerHTML = state.opponents.map(o => {
+    const statusHtml = o.status ? `<span class="opp-status ${o.status}">${o.status.toUpperCase()}</span>` : '';
+    const cards = o.hand.map(() => `<div class="opp-card-back">♠</div>`).join('');
+    return `<div class="opponent-card ${o.folded ? 'folded' : ''}">
+      <div class="opp-name">${o.name}</div>
+      <div class="opp-chips">⬤ ${o.chips} chips</div>
+      <div class="opp-cards">${cards}</div>
+      ${statusHtml}
+    </div>`;
+  }).join('');
+}
+
+function updateUI() {
+  document.getElementById('player-chips').textContent = state.playerChips;
+  document.getElementById('pot-display').textContent = state.pot;
+  document.getElementById('round-display').textContent = state.round;
+
+  const phaseNames = {
+    ante: 'Ante Phase', bet1: 'First Betting Round',
+    draw: 'Draw Phase', bet2: 'Final Betting Round',
+    'showdown-ready': 'Build Equation — Show Hand!'
+  };
+  document.getElementById('phase-label').textContent = phaseNames[state.phase] || state.phase;
+
+  const bettingPhase = state.phase === 'bet1' || state.phase === 'bet2';
+  const showBtn = state.phase === 'bet2' || state.phase === 'showdown-ready';
+  document.getElementById('btn-check').style.display = bettingPhase ? 'inline-flex' : 'none';
+  document.getElementById('btn-bet').style.display = bettingPhase ? 'inline-flex' : 'none';
+  document.getElementById('btn-raise').style.display = bettingPhase ? 'inline-flex' : 'none';
+  document.getElementById('btn-fold').style.display = bettingPhase ? 'inline-flex' : 'none';
+  document.getElementById('bet-amount-wrap').style.display = bettingPhase ? 'flex' : 'none';
+  document.getElementById('btn-showdown').style.display = showBtn ? 'inline-flex' : 'none';
+
+  renderHand();
+  renderOpponents();
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW
+// ═══════════════════════════════════════════════
+function toggleDiscard(idx) {
+  if (state.markedDiscard.has(idx)) state.markedDiscard.delete(idx);
+  else if (state.markedDiscard.size < 2) state.markedDiscard.add(idx);
+  renderHand();
+}
+
+// ═══════════════════════════════════════════════
+//  AI EQUATION SOLVER
+// ═══════════════════════════════════════════════
+function bestEquationValue(hand, strategy) {
+  // Try all subsets of 3–5 cards with simple operator combinations
+  const targets = strategy === 'hi' ? [20] : strategy === 'lo' ? [1] : [20, 1];
+  let best = { distance: Infinity, value: 0, cardCount: 0, highCard: 0, eqStr: '' };
+
+  // Generate all permutations of k cards from hand
+  function* permutations(arr, k) {
+    if (k === 1) { for (const x of arr) yield [x]; return; }
+    for (let i = 0; i < arr.length; i++) {
+      const rest = arr.filter((_, j) => j !== i);
+      for (const p of permutations(rest, k - 1)) yield [arr[i], ...p];
+    }
+  }
+
+  const ops = ['+', '-', '*', '/'];
+
+  function evalExpr(nums, opsArr) {
+    // Try left-to-right and a couple grouped forms
+    const exprs = [];
+    if (nums.length === 3) {
+      exprs.push(`${nums[0]}${opsArr[0]}${nums[1]}${opsArr[1]}${nums[2]}`);
+      exprs.push(`(${nums[0]}${opsArr[0]}${nums[1]})${opsArr[1]}${nums[2]}`);
+      exprs.push(`${nums[0]}${opsArr[0]}(${nums[1]}${opsArr[1]}${nums[2]})`);
+    } else if (nums.length === 4) {
+      exprs.push(`${nums[0]}${opsArr[0]}${nums[1]}${opsArr[1]}${nums[2]}${opsArr[2]}${nums[3]}`);
+      exprs.push(`(${nums[0]}${opsArr[0]}${nums[1]})${opsArr[1]}(${nums[2]}${opsArr[2]}${nums[3]})`);
+      exprs.push(`(${nums[0]}${opsArr[0]}${nums[1]}${opsArr[1]}${nums[2]})${opsArr[2]}${nums[3]}`);
+    } else if (nums.length === 5) {
+      exprs.push(nums.reduce((acc,n,i) => i===0?`${n}`:acc+opsArr[i-1]+n, ''));
+      exprs.push(`(${nums[0]}${opsArr[0]}${nums[1]})${opsArr[1]}(${nums[2]}${opsArr[2]}${nums[3]})${opsArr[3]}${nums[4]}`);
+    }
+    return exprs;
+  }
+
+  for (let k = 3; k <= 5; k++) {
+    for (const perm of permutations(hand, k)) {
+      // Try several operator combos
+      const opCombos = [];
+      for (const o1 of ops) for (const o2 of ops) {
+        if (k === 3) opCombos.push([o1,o2]);
+        else for (const o3 of ops) {
+          if (k === 4) opCombos.push([o1,o2,o3]);
+          else for (const o4 of ops) opCombos.push([o1,o2,o3,o4]);
+        }
+      }
+      for (const opsArr of opCombos) {
+        const exprs = evalExpr(perm, opsArr);
+        for (const expr of exprs) {
+          try {
+            const v = Function('"use strict"; return (' + expr + ')')();
+            if (!isFinite(v) || isNaN(v)) continue;
+            for (const t of targets) {
+              const d = Math.abs(v - t);
+              if (d < best.distance || (d === best.distance && k > best.cardCount)) {
+                best = { distance: d, value: v, cardCount: k, highCard: Math.max(...perm), eqStr: formatExpr(expr) };
+              }
+            }
+          } catch {}
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function formatExpr(expr) {
+  return expr.replace(/\*/g, '×').replace(/\//g, '÷');
+}
+
+// ═══════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════
+function addLog(msg, cls = 'log-line') {
+  const log = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + cls;
+  line.textContent = msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════
+//  HELP
+// ═══════════════════════════════════════════════
+function toggleHelp() {
+  document.getElementById('help-panel').classList.toggle('show');
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+initGame();
+</script>
+</body>
+</html>
